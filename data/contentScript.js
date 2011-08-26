@@ -9,7 +9,7 @@ self.on('message', function(data) {
     if (data.event == 'onLoad')
     {
         var themeEl = dojo.byId('content');
-        themeEl.innerHTML = data.content.replace(/#([0-9a-zA-Z]{6})/gi, '<span style=\'background-color: #$1;\'>#$1</span>');
+        themeEl.innerHTML = data.content.replace(/#([0-9a-fA-F]{3}|[0-9a-fA-F]{6})([^0-9a-zA-Z])/ig, '<span style=\'background-color: #$1;\'>#$1</span>$2');
 
         delete data["content"];
     }
