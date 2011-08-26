@@ -1,9 +1,9 @@
 {
-    "name": "cssvisualeditor", 
+    "name": "visualecolorditor", 
     "license": "BDS", 
     "author": "Andrea Chiumenti", 
     "version": "0.1", 
-    "fullName": "visualColorEditor", 
+    "fullName": "Visual Color Editor", 
     "id": "jid1-WBtrpzOnJBuHag", 
-    "description": "a basic add-on"
+    "description": "Allows to visually modify css colors in a text file"
 }
