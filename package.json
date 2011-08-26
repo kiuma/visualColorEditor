@@ -2,7 +2,7 @@
     "name": "visual-color-editor", 
     "license": "BDS", 
     "author": "Andrea Chiumenti", 
-    "version": "0.1", 
+    "version": "0.2", 
     "fullName": "Visual Color Editor", 
     "id": "jid1-WBtrpzOnJBuHag", 
     "description": "Allows to visually modify css colors in a text file"
