@@ -1,0 +1,255 @@
+<!doctype html>
+<head>
+    <title>CSS Color Editor</title>
+    <style>
+        @import 'http://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dijit/themes/claro/claro.css';
+        @import 'http://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojox/widget/ColorPicker/ColorPicker.css';
+
+        html, body, #main {
+            width: 100%; /* make the body expand to fill the visible window */
+            height: 100%;
+            overflow: hidden; /* erase window level scrollbars */
+            padding: 0 0 0 0;
+            margin: 0 0 0 0;
+            font: 10pt Arial, Myriad, Tahoma, Verdana, sans-serif;
+        }
+
+        #content span {
+            border: 1px solid transparent;
+            border-radius: 5px 5px 5px 5px;
+            display: inline-block;
+            margin: 2px 0;
+            padding: 4px;
+            font-style: normal;
+            color: #000;
+        }
+
+        #content span.selected {
+            box-shadow: 3px 3px 3px #888;
+        }
+
+        .left {
+            float: left;
+        }
+
+        .buttons {
+            margin-left: 2em;
+        }
+
+        .buttons .dijitButton {
+            width: 140px;
+        }
+
+        .buttons .dijitButton .dijitButtonNode {
+            width: 100%;
+        }
+
+        #main-bottom {
+            color: #888;
+        }
+
+        #saveResult, #openResult {
+            padding-left: 2em;
+        }
+
+    </style>
+
+    <script src="http://ajax.googleapis.com/ajax/libs/dojo/1.6.1/dojo/dojo.xd.js" data-dojo-config="isDebug:false, parseOnLoad: true"></script>
+    <script>
+        dojo.require('dojox.widget.ColorPicker');
+        dojo.require('dijit.form.Button');
+        dojo.require("dijit.layout.BorderContainer");
+        dojo.require("dijit.layout.ContentPane");
+        dojo.require("dojox.color");
+    </script>
+</head>
+<body class="claro">
+<div id="main" data-dojo-type="dijit.layout.BorderContainer" data-dojo-props='design:"sidebar"'>
+    <div role="banner" data-dojo-type="dijit.layout.ContentPane" data-dojo-props='id:"border1-top", region:"top", style:"height: 170px;padding: 1em;", splitter:true'>
+        <div id="picker"
+             data-dojo-type="dojox.widget.ColorPicker"
+             data-dojo-id="picker"
+             data-dojo-props="'class': 'left'"></div>
+        <div class="buttons left">
+            <div>
+                <button data-dojo-type="dijit.form.Button" data-dojo-id="openBtn">Open file</button>
+            </div>
+            <div>
+                <button data-dojo-type="dijit.form.Button" data-dojo-id="saveBtn">Save file</button>
+            </div>
+        </div>
+    </div>
+    <div role="main" data-dojo-type="dijit.layout.ContentPane" data-dojo-props='id:"border1-center", region:"center", style:"padding: 1em;"'>
+        <code>
+            <pre id="content"></pre>
+        </code>
+    </div>
+    <div data-dojo-type="dijit.layout.ContentPane" data-dojo-props='id:"main-bottom", region:"bottom", style:"height: 1.5em;", splitter:true'>
+        <span id="hint">HINT: use CTRL+click to copy colors</span><span id="openResult">No file selected</span><span id="message"></span>
+    </div>
+
+</div>
+
+<script>
+    var sourceFile;
+    var destFile;
+
+    window.addEventListener("message",
+        function (evt) {
+            try
+            {
+                var message = dojo.fromJson(evt.data);
+
+                if (message.error)
+                {
+                    printMessage(message.error);
+                }
+                else if ("onLoad" == message.event)
+                {
+                    onFileLoad(message);
+                }
+                else if ("onSave" == message.event)
+                {
+                    onFileSave(message);
+                }
+            } catch (e) {
+                printMessage(e.message);
+            }
+        }, false);
+
+
+    var printMessage = function (message, messageEl) {
+        var animate = false;
+        if (!messageEl)
+        {
+            messageEl = dojo.byId('message');
+            animate = true;
+        }
+
+        messageEl.innerHTML = message.replace('&', '&amp;').replace('>', '&gt;').replace('<', '&lt;');
+        if (animate)
+        {
+            dojo.fx.chain([
+                dojo.fadeIn({ node:messageEl , duration: 1000}),
+                dojo.fadeOut({ node:messageEl , delay: 1000, duration: 1000})
+            ]).play();
+        }
+    }
+
+    var onFileLoad = function (message)
+    {
+        var data = message.content;
+        sourceFile = message.fileName;
+
+        var themeEl = dojo.byId('content');
+//        themeEl.innerHTML = data;
+        var elements = dojo.query('span', themeEl);
+        elements.forEach(function (span)
+        {
+            var bgColorTxt = dojo.style(span, 'backgroundColor');
+            if (bgColorTxt) {
+
+                var color = new dojox.color.Color(bgColorTxt);
+                var hsv = color.toHsv();
+                var invColor;
+                if (hsv.v > 50)
+                {
+                    invColor = dojox.color.fromHsv(hsv.h, hsv.s,0).toString();
+                }
+                else
+                {
+                    invColor = dojox.color.fromHsv(hsv.h, hsv.s,100).toString();
+                }
+                dojo.style(span, 'color', invColor);
+                dojo.style(span, 'borderColor', invColor);
+            }
+            dojo.connect(span, 'onclick', function (evt)
+            {
+                if (evt.ctrlKey)
+                {
+                    dojo.query('span.selected', themeEl).forEach(function (prevSpan)
+                    {
+                        dojo.style(span, 'backgroundColor', dojo.style(prevSpan, 'backgroundColor'));
+                        dojo.style(span, 'color', dojo.style(prevSpan, 'color'));
+                        span.innerHTML = prevSpan.innerHTML;
+                    });
+                }
+                dojo.query('span', dojo.byId('content')).forEach(function (el)
+                {
+                    dojo.removeClass(el, 'selected');
+                });
+                dojo.addClass(span, 'selected');
+                picker.set('value', dojo.style(span, 'backgroundColor'));
+            });
+
+        });
+        if (elements.length > 0)
+        {
+            dojo.addClass(elements[0], 'selected');
+            picker.set('value', dojo.style(elements[0], 'backgroundColor'));
+        }
+
+        printMessage(message.message,dojo.byId('openResult'));
+
+    }
+
+    var onFileSave = function (message)
+    {
+        destFile = message.fileName;
+        printMessage(message.message);
+    };
+
+    dojo.ready(function ()
+    {
+
+        var themeEl = dojo.byId('content');
+
+        dojo.connect(saveBtn, 'onClick', function() {
+            if (!sourceFile)
+            {
+                return;
+            }
+            if (!destFile)
+            {
+                destFile = sourceFile;
+            }
+            var content = dojo.byId('content').innerHTML.replace(/(<span[^>]*>)([^<]*)(<\/span>)/gi, "$2").replace('&gt;', '>').replace('&lt;', '<').replace('&amp;', '&');
+            var message = dojo.toJson({command: 'save', content: content, fileName: destFile});
+
+            window.postMessage(message, "*");
+        });
+        dojo.connect(openBtn, 'onClick', function () {
+            var message = dojo.toJson({command: 'load', fileName: sourceFile});
+            window.postMessage(message, "*");
+        });
+
+
+        dojo.connect(picker, 'onChange', function (value)
+        {
+            dojo.query('span.selected', themeEl).forEach(function (span)
+            {
+                if (value != dojo.style(span, 'backgroundColor'))
+                {
+                    dojo.style(span, 'backgroundColor', value);
+                    span.innerHTML = value;
+
+                    var color = new dojox.color.Color(value);
+                    var hsv = color.toHsv();
+                    var invColor;
+                    if (hsv.v > 50)
+                    {
+                        invColor = dojox.color.fromHsv(hsv.h, hsv.s,0).toString();
+                    }
+                    else
+                    {
+                        invColor = dojox.color.fromHsv(hsv.h, hsv.s,100).toString();
+                    }
+                    dojo.style(span, 'color', invColor);
+                    dojo.style(span, 'borderColor', invColor);
+                }
+            });
+        });
+    });
+</script>
+</body>
+</html>
